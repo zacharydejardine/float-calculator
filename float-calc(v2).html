@@ -754,6 +754,21 @@ document.getElementById('calcBtn').addEventListener('click', () => {
   const coinPoolTotal = (key) => (looseRemaining[key]||0) + (openRemaining[key]||0) + (sealedRolls[key]||0)*cprOf(key);
 
   const billRemaining = {...billAvail};
+  // Consume coins that must come specifically from SEALED rolls (never loose).
+  // Whole rolls are handed over intact; only a leftover remainder breaks one.
+  function consumeSealed(key, amount){
+    const cpr = cprOf(key);
+    if(amount <= 0 || cpr <= 0) return;
+    const wholeRolls = Math.floor(amount / cpr);
+    const remainder = amount % cpr;
+    sealedRolls[key] = (sealedRolls[key]||0) - wholeRolls; // used intact, not "opened"
+    if(remainder > 0){
+      sealedRolls[key] -= 1;
+      rollsOpenedCount[key] += 1;          // this one genuinely gets broken open
+      openRemaining[key] += (cpr - remainder);
+    }
+  }
+
   function consumeFromPool(key, amount){
     let need = amount;
     const fromLoose = Math.min(need, looseRemaining[key]||0);
@@ -833,7 +848,7 @@ document.getElementById('calcBtn').addEventListener('click', () => {
         const coinKey = key.replace('__sealed','');
         counts[coinKey] = (counts[coinKey]||0) + n;
         fromRoll[coinKey] = (fromRoll[coinKey]||0) + n;
-        consumeFromPool(coinKey, n); // breaks sealed rolls as needed, records the break
+        consumeSealed(coinKey, n); // sealed rolls only; records a break if partial
       } else {
         counts[key] = (counts[key]||0) + n;
         billRemaining[key] -= n;
@@ -1029,9 +1044,9 @@ document.getElementById('calcBtn').addEventListener('click', () => {
       const fromLoose = Math.min(nLoose, looseRemaining[c.key]||0);
       looseRemaining[c.key] -= fromLoose;
       openRemaining[c.key] -= (nLoose - fromLoose);
-      // roll portion: breaks sealed rolls as needed and records each break
+      // roll portion: comes strictly from sealed rolls (loose already handled above)
       const nRoll = used[c.key+'__roll'] || 0;
-      if(nRoll > 0) consumeFromPool(c.key, nRoll);
+      if(nRoll > 0) consumeSealed(c.key, nRoll);
     });
     BILLS.forEach(b => {
       billRemaining[b.key] = (billRemaining[b.key]||0) - (used[b.key]||0);
