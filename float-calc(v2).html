@@ -1035,6 +1035,52 @@ document.getElementById('calcBtn').addEventListener('click', () => {
     });
   }
 
+  // PULL WHOLE ROLLS INTO THE FLOAT. A sealed roll should never be left sitting
+  // in the deposit -- the float is the right home for coin rolls. For each roll
+  // still sealed after the float's own usage, try to swap it in by removing an
+  // exactly equal value of bills / loose coins from the float (those go to the
+  // deposit instead). Value is unchanged; the float just gets the roll.
+  if(used){
+    const subsetExact = (items, targetVal) => {
+      // bounded subset-sum over the float's removable bills/loose, in 5c units
+      const T = targetVal / UNIT;
+      const reach = new Array(T+1).fill(null);
+      reach[0] = {};
+      for(const it of items){
+        const step = it.value / UNIT;
+        for(let c = 1; c <= it.count; c++){
+          for(let v = T; v >= step; v--){
+            if(reach[v] === null && reach[v-step] !== null){
+              const taken = reach[v-step][it.key] || 0;
+              if(taken < it.count){
+                reach[v] = {...reach[v-step], [it.key]: taken + 1};
+              }
+            }
+          }
+        }
+      }
+      return reach[T];
+    };
+
+    COINS.forEach(c => {
+      const cpr = cprOf(c.key);
+      if(!cpr) return;
+      const rollValue = cpr * c.value;
+      let sealedLeft = (sealedRolls[c.key]||0) - Math.floor((used[c.key+'__roll']||0) / cpr);
+      let guard = sealedLeft;
+      while(sealedLeft > 0 && guard-- > 0){
+        const items = [];
+        BILLS.forEach(b => { const n = used[b.key]||0; if(n>0) items.push({key:b.key, value:b.value, count:n}); });
+        COINS.forEach(x => { const k = x.key+'__loose'; const n = used[k]||0; if(n>0) items.push({key:k, value:x.value, count:n}); });
+        const pick = subsetExact(items, rollValue);
+        if(!pick) break; // can't free exactly this roll's value -- leave it be
+        Object.keys(pick).forEach(k => { used[k] -= pick[k]; });
+        used[c.key+'__roll'] = (used[c.key+'__roll']||0) + cpr;
+        sealedLeft--;
+      }
+    });
+  }
+
   // Deduct the float's usage from the running pool trackers, so Deposit
   // reflects what's genuinely left over.
   if(used){
@@ -1053,6 +1099,60 @@ document.getElementById('calcBtn').addEventListener('click', () => {
     });
   }
 
+
+  // CONSOLIDATE THE DEPOSIT'S COINS. Same value, fewer coins: hand a single
+  // larger coin from the float over to the deposit in exchange for the pile of
+  // smaller coins it's worth (e.g. give 1 loonie, take back 4 quarters). The
+  // float gains coins, the deposit sheds them, and both totals stay identical.
+  // Priority: minimise deposit coin count FIRST, keep rolls sealed SECOND --
+  // so pass 1 only uses coins that are already loose, and pass 2 will crack a
+  // sealed roll in the float if that's the only way to shrink the deposit.
+  if(used){
+    const coinsDesc = [...COINS].sort((a,b) => b.value - a.value);
+    const depositLoose = (key) => (looseRemaining[key]||0) + (openRemaining[key]||0);
+    const takeFromDeposit = (key, n) => {
+      const fromLoose = Math.min(n, looseRemaining[key]||0);
+      looseRemaining[key] -= fromLoose;
+      openRemaining[key] -= (n - fromLoose);
+    };
+    // Pull one 'big' coin out of the float. allowBreak lets it crack a sealed roll.
+    const takeBigFromFloat = (key, allowBreak) => {
+      const cpr = cprOf(key);
+      const looseK = key + '__loose', rollK = key + '__roll';
+      if((used[looseK]||0) > 0){ used[looseK] -= 1; return true; }
+      const inRoll = used[rollK] || 0;
+      if(inRoll > 0){
+        const isSealedWhole = cpr > 0 && (inRoll % cpr === 0);
+        if(isSealedWhole && !allowBreak) return false; // would break a sealed roll
+        if(isSealedWhole) rollsOpenedCount[key] += 1;  // cracking it open now
+        used[rollK] -= 1;
+        return true;
+      }
+      return false;
+    };
+    const runPass = (allowBreak) => {
+      let changed = true, guard = 200;
+      while(changed && guard-- > 0){
+        changed = false;
+        for(const big of coinsDesc){
+          for(const small of coinsDesc){
+            if(small.value >= big.value) continue;
+            if(big.value % small.value !== 0) continue;
+            const k = big.value / small.value;
+            if(k <= 1) continue;
+            while(depositLoose(small.key) >= k && takeBigFromFloat(big.key, allowBreak)){
+              looseRemaining[big.key] = (looseRemaining[big.key]||0) + 1; // big -> deposit
+              takeFromDeposit(small.key, k);
+              used[small.key+'__loose'] = (used[small.key+'__loose']||0) + k; // smalls -> float
+              changed = true;
+            }
+          }
+        }
+      }
+    };
+    runPass(false); // free swaps first -- nothing gets unsealed
+    runPass(true);  // then crack rolls if it still shrinks the deposit
+  }
 
   const poolCents = totalAvailCents - tipCents; // reserve is part of tipCents, not extra
 
