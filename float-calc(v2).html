@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Till Float Calculator</title>
+
+<!-- Home screen / PWA-ish meta -->
+<meta name="theme-color" content="#0f2e22">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Till Float">
+<link id="touchIcon" rel="apple-touch-icon">
+<link id="favicon" rel="icon" type="image/svg+xml">
+<link id="manifestLink" rel="manifest">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --felt-900:#0f2e22;
+    --felt-800:#153c2c;
+    --felt-700:#1c4a36;
+    --brass-500:#c9a227;
+    --brass-400:#ddb94a;
+    --paper-100:#f7f2e4;
+    --paper-200:#efe7d2;
+    --ink-900:#182018;
+    --ink-600:#4a564c;
+    --red-600:#b3452c;
+    --green-ok:#2f6b46;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, var(--felt-700), transparent 60%),
+      var(--felt-900);
+    color:var(--paper-100);
+    font-family:'Inter',sans-serif;
+    padding:32px 20px 60px;
+    min-height:100vh;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
+
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+    border-bottom:1px solid rgba(247,242,228,0.15);
+    padding-bottom:18px;
+    margin-bottom:28px;
+  }
+  header h1{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:700;
+    font-size:26px;
+    letter-spacing:0.5px;
+    margin:0;
+    color:var(--paper-100);
+  }
+  header h1 span{color:var(--brass-400);}
+  header p{margin:0;color:rgba(247,242,228,0.55);font-size:13px;font-family:'IBM Plex Mono',monospace;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:1.05fr 0.95fr;
+    gap:24px;
+  }
+  @media (max-width:860px){ .grid{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--felt-800);
+    border:1px solid rgba(247,242,228,0.1);
+    border-radius:var(--radius);
+    padding:22px 22px 26px;
+  }
+  .panel h2{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:1.4px;
+    color:var(--brass-400);
+    margin:0 0 4px;
+    font-weight:600;
+  }
+  .panel .sub{font-size:12px;color:rgba(247,242,228,0.45);margin:0 0 18px;}
+
+  .float-target{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    background:var(--felt-700);
+    border-radius:8px;
+    padding:14px 16px;
+    margin-bottom:22px;
+  }
+  .float-target label{font-size:13px;color:rgba(247,242,228,0.7);flex-shrink:0;}
+  .float-target .amt{
+    display:flex;align-items:center;gap:6px;flex:1;
+  }
+  .float-target .amt .cur{font-family:'IBM Plex Mono',monospace;font-size:20px;color:var(--brass-400);}
+  .float-target input[type=number]{
+    background:transparent;
+    border:none;
+    border-bottom:2px solid var(--brass-500);
+    color:var(--paper-100);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:22px;
+    font-weight:600;
+    width:100%;
+    padding:2px 4px;
+    outline:none;
+  }
+  .float-target input[type=number]:focus{border-bottom-color:var(--brass-400);}
+
+  .section-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:rgba(247,242,228,0.5);
+    margin:20px 0 8px;
+  }
+  .section-label:first-of-type{margin-top:0;}
+
+  .denom-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:10px;
+  }
+  .denom{
+    background:var(--felt-700);
+    border:1px solid rgba(247,242,228,0.08);
+    border-radius:7px;
+    padding:9px 10px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .denom .name{font-size:12px;color:rgba(247,242,228,0.65);display:flex;justify-content:space-between;}
+  .denom .name b{color:var(--paper-100);font-weight:600;}
+  .denom .name small{color:rgba(247,242,228,0.4);font-family:'IBM Plex Mono',monospace;}
+  .denom input{
+    background:var(--felt-800);
+    border:1px solid rgba(247,242,228,0.12);
+    border-radius:5px;
+    color:var(--paper-100);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px;
+    padding:6px 8px;
+    width:100%;
+    outline:none;
+  }
+  .denom input:focus{border-color:var(--brass-500);}
+
+  .calc-btn{
+    margin-top:24px;
+    width:100%;
+    background:var(--brass-500);
+    color:var(--ink-900);
+    border:none;
+    border-radius:8px;
+    padding:14px;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:0.6px;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:background 0.15s ease, transform 0.1s ease;
+  }
+  .calc-btn:hover{background:var(--brass-400);}
+  .calc-btn:active{transform:scale(0.99);}
+
+  /* Receipt */
+  .receipt-outer{
+    background:var(--felt-800);
+    border:1px solid rgba(247,242,228,0.1);
+    border-radius:var(--radius);
+    padding:18px;
+    position:sticky;
+    top:24px;
+  }
+  .receipt-outer h2{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:1.4px;
+    color:var(--brass-400);
+    margin:0 0 12px;
+    font-weight:600;
+  }
+  .save-png-btn{
+    width:100%;
+    margin-top:14px;
+    background:var(--brass-500);
+    color:var(--ink-900);
+    border:none;
+    border-radius:8px;
+    padding:12px;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:background 0.15s ease;
+  }
+  .save-png-btn:hover{background:var(--brass-400);}
+  .save-png-btn:disabled{opacity:0.6;cursor:default;}
+  .receipt{
+    background:#ffffff;
+    color:var(--ink-900);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:18px;
+    border-radius:2px;
+    padding:0;
+    overflow:hidden;
+  }
+  .perf{
+    height:10px;
+    background:
+      radial-gradient(circle at 8px 5px, var(--felt-800) 4px, transparent 4.5px) repeat-x;
+    background-size:16px 10px;
+    background-color:#ffffff;
+  }
+  .perf.bottom{transform:scaleY(-1);}
+  .receipt-body{padding:16px 18px 18px;}
+  .receipt-title{text-align:center;font-weight:700;letter-spacing:1px;margin-bottom:2px;font-size:22px;}
+  .receipt-sub{text-align:center;font-size:15px;color:var(--ink-600);margin-bottom:12px;}
+  .rline{
+    display:flex;justify-content:space-between;padding:4px 0;
+  }
+  .rline.dim{color:var(--ink-600);font-size:16px;}
+  .rline.roll-math{font-size:15px;font-style:italic;padding:0 0 4px 4px;}
+  .rline.tip-arith{font-size:14px;font-style:italic;padding:0 0 5px 4px;}
+  .coin-heading{font-weight:700;font-size:16.5px;color:var(--ink-900);margin-top:7px;}
+  .rolls-opened-note{
+    color:#c2611a;
+    border:1px solid #c2611a;
+    border-radius:6px;
+    font-weight:800;
+    font-size:16px;
+    text-align:center;
+    padding:9px 11px;
+    margin-top:8px;
+  }
+  .rolls-opened-title{
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    font-size:14.5px;
+    font-weight:800;
+    margin-bottom:2px;
+  }
+  .dashed{border-top:1px dashed rgba(24,32,24,0.35);margin:10px 0;}
+  .rtotal{display:flex;justify-content:space-between;font-weight:700;font-size:20px;padding-top:4px;}
+  .flag{
+    margin-top:12px;
+    padding:9px 10px;
+    border-radius:5px;
+    font-size:12px;
+    line-height:1.5;
+  }
+  .flag.ok{color:var(--green-ok);border:1px solid var(--green-ok);}
+  .flag.warn{color:var(--red-600);border:1px solid var(--red-600);}
+  .suggestion-note{
+    margin-top:14px;
+    padding:9px 11px;
+    border-radius:6px;
+    border:1px solid #96700a;
+    color:#96700a;
+    font-size:15px;
+    line-height:1.5;
+    text-align:center;
+  }
+  .empty-note{color:var(--ink-600);font-size:16px;text-align:center;padding:20px 4px;}
+
+  .rline.float-hl{
+    color:#0c3f5c;
+    font-weight:700;
+    border-radius:5px;
+    padding:5px 8px;
+    margin:2px -8px;
+  }
+  .rtotal.float-hl{
+    color:#0c3f5c;
+    border:2px solid #0c3f5c;
+    border-radius:5px;
+    padding:5px 8px;
+    margin:2px -8px 4px;
+  }
+  .rtotal.variance-over{
+    color:var(--green-ok);
+    border:1px solid var(--green-ok);
+    border-radius:5px;
+    padding:5px 8px;
+    margin:2px -8px;
+  }
+  .tips-summary{
+    margin-top:2px;
+  }
+  .rline.bold{font-weight:700;}
+  .rline.equation-line{
+    border-bottom:2px solid var(--ink-900);
+    padding-bottom:6px;
+    margin-bottom:4px;
+  }
+  .rtotal.bold{font-weight:800;}
+  .tip-payout-box{
+    border:1px solid #15803d;
+    border-radius:7px;
+    padding:2px 0;
+    margin-top:4px;
+  }
+  .tip-payout-total{
+    color:#15803d;
+    font-weight:700;
+    display:flex;
+    justify-content:space-between;
+    padding:6px 10px;
+    border-bottom:1px dashed #15803d;
+  }
+  .tip-payout-breakdown{
+    color:var(--ink-900);
+    padding:4px 10px 6px;
+  }
+  .section-box{
+    border-radius:7px;
+    padding:2px 0;
+    margin-top:4px;
+  }
+  .section-box-total{
+    font-weight:700;
+    font-size:20px;
+    display:flex;
+    justify-content:space-between;
+    padding:6px 10px;
+  }
+  .section-box-breakdown{
+    color:var(--ink-900);
+    padding:4px 10px 6px;
+  }
+  .section-box.float-box{ border:2px solid #0c3f5c; }
+  .section-box.float-box .section-box-total{
+    color:#0c3f5c;
+    border-bottom:1px dashed #0c3f5c;
+  }
+  .section-box.deposit-box{ border:2px solid var(--ink-900); }
+  .section-box.deposit-box .section-box-total{
+    color:var(--ink-900);
+    border-bottom:1px dashed var(--ink-900);
+  }
+  .rtotal.variance-short{
+    color:var(--red-600);
+    border:1px solid var(--red-600);
+    border-radius:5px;
+    padding:5px 8px;
+    margin:2px -8px;
+  }
+  .rtotal.tip-hl{
+    color:#15803d;
+    border:2px solid #15803d;
+    border-radius:5px;
+    padding:5px 8px;
+    margin:2px -8px;
+  }
+
+  .group-title{font-weight:700;font-size:15.5px;text-transform:uppercase;letter-spacing:0.8px;margin:14px 0 5px;color:var(--ink-900);}
+  .group-title:first-child{margin-top:0;}
+
+  .denom-row{
+    display:grid;
+    grid-template-columns: 1fr 32px 16px 76px 16px 96px;
+    column-gap:6px;
+    align-items:baseline;
+    font-variant-numeric: tabular-nums;
+    padding:4px 0;
+  }
+  .denom-row .d-name{color:var(--ink-900);}
+  .denom-row .d-qty{text-align:right;font-weight:700;}
+  .denom-row .d-x{text-align:center;color:var(--ink-600);}
+  .denom-row .d-unit{text-align:right;color:var(--ink-600);}
+  .denom-row .d-eq{text-align:center;color:var(--ink-600);}
+  .denom-row .d-total{text-align:right;font-weight:600;}
+  @media print{
+    body{background:#fff;padding:0;}
+    .panel, .save-png-btn, header{display:none !important;}
+    .receipt-outer{padding:0;}
+    .grid{display:block;}
+    .receipt{
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+      box-shadow:none;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Till <span>Float</span> Calculator</h1>
+      <p>Canadian denominations &middot; rolls &amp; coins first, bills fill the gap</p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- INPUT PANEL -->
+    <div class="panel">
+      <h2>Set Up</h2>
+      <p class="sub">Enter your target float, then what's currently on hand.</p>
+
+      <div class="float-target">
+        <label for="target">Target store float</label>
+        <div class="amt">
+          <span class="cur">$</span>
+          <input type="number" id="target" value="142" step="1" min="0">
+        </div>
+      </div>
+
+      <div class="float-target">
+        <label for="expected">Expected total</label>
+        <div class="amt">
+          <span class="cur">$</span>
+          <input type="number" id="expected" placeholder="0" step="0.01" min="0">
+        </div>
+      </div>
+
+      <div class="section-label">Personal Float reserve (from tip)</div>
+      <div class="denom-grid">
+        <div class="denom">
+          <div class="name"><b>Quarters</b><small>25c</small></div>
+          <input type="number" min="0" step="1" id="reserve_quarter" value="2">
+        </div>
+        <div class="denom">
+          <div class="name"><b>Dimes</b><small>10c</small></div>
+          <input type="number" min="0" step="1" id="reserve_dime" value="3">
+        </div>
+        <div class="denom">
+          <div class="name"><b>Nickels</b><small>5c</small></div>
+          <input type="number" min="0" step="1" id="reserve_nickel" value="4">
+        </div>
+      </div>
+
+      <div class="section-label">Coin rolls on hand</div>
+      <div class="denom-grid" id="rollsGrid"></div>
+
+      <div class="section-label">Bills on hand</div>
+      <div class="denom-grid" id="billsGrid"></div>
+
+      <div class="section-label">Loose coins on hand</div>
+      <div class="denom-grid" id="coinsGrid"></div>
+
+      <button class="calc-btn" id="calcBtn">Calculate Float</button>
+    </div>
+
+    <!-- RESULT PANEL -->
+    <div class="receipt-outer">
+      <h2>Breakdown</h2>
+      <div class="receipt" id="receiptCapture">
+        <div class="perf"></div>
+        <div class="receipt-body" id="receiptBody">
+          <div class="receipt-title">TILL SUMMARY</div>
+          <div class="receipt-sub">enter your numbers and calculate</div>
+          <div class="empty-note">No calculation yet. Fill in what you have on the left and hit Calculate Float.</div>
+        </div>
+        <div class="perf bottom"></div>
+      </div>
+      <button class="save-png-btn" id="savePngBtn">Save as PNG</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Home screen icon + manifest (so this can be installed on Android) ----
+(function setupHomeScreen(){
+  try {
+  const iconSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+      <rect width="192" height="192" rx="28" fill="#0f2e22"/>
+      <circle cx="96" cy="96" r="62" fill="#c9a227"/>
+      <circle cx="96" cy="96" r="62" fill="none" stroke="#0f2e22" stroke-width="4"/>
+      <text x="96" y="118" font-family="Georgia, serif" font-size="72" font-weight="700"
+            text-anchor="middle" fill="#0f2e22">$</text>
+    </svg>`;
+  const iconUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(iconSvg);
+
+  document.getElementById('touchIcon').setAttribute('href', iconUrl);
+  document.getElementById('favicon').setAttribute('href', iconUrl);
+
+  const manifest = {
+    name: 'Till Float Calculator',
+    short_name: 'Till Float',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#0f2e22',
+    theme_color: '#0f2e22',
+    icons: [
+      { src: iconUrl, sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
+      { src: iconUrl, sizes: '512x512', type: 'image/svg+xml', purpose: 'any' }
+    ]
+  };
+  const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  document.getElementById('manifestLink').setAttribute('href', URL.createObjectURL(manifestBlob));
+  } catch(e) { /* home-screen install is a nice-to-have; ignore if unsupported */ }
+})();
+
+// ---- Denomination definitions (values in cents to avoid float issues) ----
+const ROLLS = [
+  { key:'toonieRoll',  label:'Toonie roll',   sub:'25 x $2',    value:5000, coinKey:'toonie',  coinsPerRoll:25 },
+  { key:'loonieRoll',  label:'Loonie roll',   sub:'25 x $1',    value:2500, coinKey:'loonie',  coinsPerRoll:25 },
+  { key:'quarterRoll', label:'Quarter roll',  sub:'40 x 25c',   value:1000, coinKey:'quarter', coinsPerRoll:40 },
+  { key:'dimeRoll',    label:'Dime roll',     sub:'50 x 10c',   value:500,  coinKey:'dime',    coinsPerRoll:50 },
+  { key:'nickelRoll',  label:'Nickel roll',   sub:'40 x 5c',    value:200,  coinKey:'nickel',  coinsPerRoll:40 },
+];
+const COINS = [
+  { key:'toonie',  label:'Toonie',  sub:'$2.00', value:200 },
+  { key:'loonie',  label:'Loonie',  sub:'$1.00', value:100 },
+  { key:'quarter', label:'Quarter', sub:'25c',   value:25  },
+  { key:'dime',    label:'Dime',    sub:'10c',   value:10  },
+  { key:'nickel',  label:'Nickel',  sub:'5c',    value:5   },
+];
+const BILLS = [
+  { key:'b100', label:'$100 bill', sub:'', value:10000 },
+  { key:'b50',  label:'$50 bill',  sub:'', value:5000  },
+  { key:'b20',  label:'$20 bill',  sub:'', value:2000  },
+  { key:'b10',  label:'$10 bill',  sub:'', value:1000  },
+  { key:'b5',   label:'$5 bill',   sub:'', value:500   },
+];
+
+function buildGrid(containerId, items, unitLabelFn){
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map(it => `
+    <div class="denom">
+      <div class="name"><b>${it.label}</b><small>${it.sub}</small></div>
+      <input type="number" min="0" step="1" id="in_${it.key}" placeholder="0">
+    </div>
+  `).join('');
+}
+buildGrid('rollsGrid', ROLLS);
+buildGrid('coinsGrid', COINS);
+buildGrid('billsGrid', BILLS);
+
+function getCount(key){
+  const v = parseInt(document.getElementById('in_'+key).value, 10);
+  return isNaN(v) || v < 0 ? 0 : v;
+}
+function getCountById(id){
+  const el = document.getElementById(id);
+  const v = parseInt(el ? el.value : '', 10);
+  return isNaN(v) || v < 0 ? 0 : v;
+}
+function fmt(cents){
+  const sign = cents < 0 ? '-' : '';
+  cents = Math.abs(cents);
+  return sign + '$' + (cents/100).toFixed(2);
+}
+// Merges roll counts into their equivalent coin counts, showing the conversion math
+function coinLineWithRolls(coin, rollCount, looseCount, coinsPerRoll){
+  rollCount = Math.max(0, rollCount|0); // never show more rolls than were actually entered
+  const totalCoins = (rollCount*coinsPerRoll) + looseCount;
+  if(totalCoins <= 0) return '';
+  let mathHtml = '';
+  if(rollCount > 0){
+    const parts = [`${rollCount} roll${rollCount===1?'':'s'} &times; ${coinsPerRoll}`];
+    if(looseCount > 0) parts.push(`${looseCount} loose`);
+    mathHtml = `<div class="rline dim roll-math"><span>${parts.join(' + ')} = ${totalCoins} ${coin.label.toLowerCase()}s</span><span></span></div>`;
+  }
+  return denomLine(coin.label, totalCoins, coin.value, totalCoins*coin.value) + mathHtml;
+}
+// Like usedCoinLineWithRollMath, but takes the EXACT loose/roll split as solved
+// (rather than assuming loose is spent first), since the solver itself now
+// prefers loose coins and only dips into rolls when actually necessary.
+function exactUsedCoinLine(coin, usedLoose, usedRoll, coinsPerRoll){
+  const total = usedLoose + usedRoll;
+  if(usedRoll <= 0 || !coinsPerRoll){
+    return denomLine(coin.label, total, coin.value, total*coin.value);
+  }
+  const fullRolls = Math.floor(usedRoll / coinsPerRoll);
+  const partial = usedRoll - (fullRolls*coinsPerRoll);
+  let mathHtml;
+  if(fullRolls >= 1){
+    // Once a roll is opened, any leftover from it is just loose change --
+    // only the fully-used rolls get called out as "rolls".
+    const mergedLoose = usedLoose + partial;
+    mathHtml = `<div class="rline dim roll-math"><span>${fullRolls} roll${fullRolls===1?'':'s'} (${fullRolls*coinsPerRoll}) + ${mergedLoose} loose = ${total} ${coin.label.toLowerCase()}s</span><span></span></div>`;
+  } else {
+    mathHtml = `<div class="rline dim roll-math"><span>${usedRoll} from 1 roll + ${usedLoose} loose = ${total} ${coin.label.toLowerCase()}s</span><span></span></div>`;
+  }
+  return denomLine(coin.label, total, coin.value, total*coin.value) + mathHtml;
+}
+// Renders "Label   n x unit = total" as an aligned grid row
+function denomLine(label, count, unitCents, totalCents){
+  return `<div class="denom-row">
+    <span class="d-name">${label}</span>
+    <span class="d-qty">${count}</span>
+    <span class="d-x">&times;</span>
+    <span class="d-unit">${fmt(unitCents)}</span>
+    <span class="d-eq">=</span>
+    <span class="d-total">${fmt(totalCents)}</span>
+  </div>`;
+}
+// Greedy breakdown of an amount into the largest possible denominations,
+// bounded by what's actually available in the drawer (so the tip is made of
+// real bills/coins, not hypothetical ones).
+const TIP_DENOMS_DESC = [...BILLS, ...COINS].sort((a,b) => b.value - a.value);
+function breakdownLargestFirst(cents, denomList, availableByKey){
+  let remaining = cents;
+  const lines = [];
+  const counts = {};
+  for(const d of denomList){
+    const avail = availableByKey[d.key] || 0;
+    if(avail <= 0 || remaining <= 0) continue;
+    const take = Math.min(avail, Math.floor(remaining / d.value));
+    if(take > 0){
+      lines.push(denomLine(d.label, take, d.value, take*d.value));
+      counts[d.key] = take;
+      remaining -= take*d.value;
+    }
+  }
+  return { html: lines.join(''), counts, remainder: remaining };
+}
+
+// Exact subset-sum solver: always tries to hit the target exactly using
+// available inventory, even if it means it's not the "optimal" (fewest-rolls)
+// combination. Bias order is rolls -> loose coins -> bills, so when more than
+// one exact combination exists it still prefers rolls/coins over breaking bills.
+const UNIT = 5; // smallest denomination (nickel) in cents
+const MAX_TARGET_CENTS = 1000000; // sanity cap ($10,000) to keep the DP fast
+
+function solveExact(targetCents, allDenoms, availableByKey){
+  const targetUnits = targetCents / UNIT;
+
+  // Binary-split each denomination's available count into pieces so bounded
+  // knapsack becomes a fast 0/1 subset-sum problem.
+  const pieces = [];
+  allDenoms.forEach(d => {
+    let remaining = availableByKey[d.key] || 0;
+    const valueUnits = d.value / UNIT;
+    let chunk = 1;
+    while(remaining > 0){
+      const take = Math.min(chunk, remaining);
+      pieces.push({ key:d.key, count:take, units: take*valueUnits });
+      remaining -= take;
+      chunk *= 2;
+    }
+  });
+
+  const n = pieces.length;
+  // reachable[i] = Uint8Array over v = 0..targetUnits, using first i pieces
+  const reachable = new Array(n+1);
+  reachable[0] = new Uint8Array(targetUnits+1);
+  reachable[0][0] = 1;
+
+  for(let i=1;i<=n;i++){
+    const prev = reachable[i-1];
+    const cur = new Uint8Array(targetUnits+1);
+    const pu = pieces[i-1].units;
+    for(let v=0; v<=targetUnits; v++){
+      if(prev[v]){ cur[v] = 1; continue; }
+      if(v>=pu && prev[v-pu]){ cur[v] = 1; }
+    }
+    reachable[i] = cur;
+  }
+
+  if(!reachable[n][targetUnits]){
+    return null; // truly not possible with what's on hand
+  }
+
+  // Backtrack, preferring to SKIP later pieces (bills) when possible so the
+  // solution favours rolls/coins first.
+  const usedCount = {};
+  let v = targetUnits;
+  for(let i=n;i>=1;i--){
+    const piece = pieces[i-1];
+    if(reachable[i-1][v]){
+      continue; // skip this piece, it wasn't needed
+    }
+    usedCount[piece.key] = (usedCount[piece.key]||0) + piece.count;
+    v -= piece.units;
+  }
+  return usedCount;
+}
+
+document.getElementById('calcBtn').addEventListener('click', () => {
+  const targetDollars = parseFloat(document.getElementById('target').value);
+  const body = document.getElementById('receiptBody');
+
+  if(isNaN(targetDollars) || targetDollars <= 0){
+    body.innerHTML = `
+      <div class="receipt-title">TILL SUMMARY</div>
+      <div class="receipt-sub">error</div>
+      <div class="empty-note">Enter a target float greater than $0.</div>`;
+    return;
+  }
+  let targetCents = Math.round(targetDollars * 100);
+  // round to nearest nickel, since every denomination is a multiple of 5c
+  const roundedCents = Math.round(targetCents / UNIT) * UNIT;
+  const wasRounded = roundedCents !== targetCents;
+  targetCents = roundedCents;
+
+  if(targetCents > MAX_TARGET_CENTS){
+    body.innerHTML = `
+      <div class="receipt-title">TILL SUMMARY</div>
+      <div class="receipt-sub">error</div>
+      <div class="empty-note">That target's too large to calculate here (max $10,000). Try a smaller amount.</div>`;
+    return;
+  }
+
+  // gather available inventory: rolls are converted into coins right away,
+  // so every calculation from here on just deals in coins + bills.
+  const rollAvail = {}; ROLLS.forEach(r => rollAvail[r.key] = getCount(r.key));
+  const looseCoinAvail = {}; COINS.forEach(c => looseCoinAvail[c.key] = getCount(c.key));
+  const billAvail = {}; BILLS.forEach(b => billAvail[b.key] = getCount(b.key));
+
+  const coinAvail = {};
+  COINS.forEach(c => {
+    const roll = ROLLS.find(r => r.coinKey === c.key);
+    const fromRolls = roll ? (rollAvail[roll.key]||0) * roll.coinsPerRoll : 0;
+    coinAvail[c.key] = (looseCoinAvail[c.key]||0) + fromRolls;
+  });
+  const availableByKey = {...coinAvail, ...billAvail};
+
+  const allDenoms = [...COINS, ...BILLS].sort((a,b) => a.value - b.value); // smallest denomination first, so the solver favours using lower denominations
+  const totalAvailCents = allDenoms.reduce((sum,d) => sum + (availableByKey[d.key]||0)*d.value, 0);
+
+  // Three-bucket pool model per coin:
+  //   looseRemaining -- coins that started out loose
+  //   openRemaining  -- coins from a roll that has ALREADY been broken open
+  //                     (physically loose now, so treated the same as loose)
+  //   sealedRolls    -- intact, unopened rolls
+  // A roll only moves from sealed -> open when something genuinely needs it,
+  // and that break is recorded once, globally, in rollsOpenedCount.
+  const looseRemaining = {...looseCoinAvail};
+  const openRemaining = {};
+  const sealedRolls = {};
+  const rollsOpenedCount = {};
+  COINS.forEach(c => {
+    const roll = ROLLS.find(r => r.coinKey === c.key);
+    openRemaining[c.key] = 0;
+    sealedRolls[c.key] = roll ? (rollAvail[roll.key]||0) : 0;
+    rollsOpenedCount[c.key] = 0;
+  });
+  const cprOf = (key) => {
+    const roll = ROLLS.find(r => r.coinKey === key);
+    return roll ? roll.coinsPerRoll : 0;
+  };
+  // total coins still available for a denomination (all three buckets)
+  const coinPoolTotal = (key) => (looseRemaining[key]||0) + (openRemaining[key]||0) + (sealedRolls[key]||0)*cprOf(key);
+
+  const billRemaining = {...billAvail};
+  function consumeFromPool(key, amount){
+    let need = amount;
+    const fromLoose = Math.min(need, looseRemaining[key]||0);
+    looseRemaining[key] -= fromLoose; need -= fromLoose;
+    const fromOpen = Math.min(need, openRemaining[key]||0);
+    openRemaining[key] -= fromOpen; need -= fromOpen;
+    // Still short? Use sealed rolls. A roll consumed ENTIRELY is handed over
+    // still sealed (not "opened"); only a partial draw actually breaks one.
+    const cpr = cprOf(key);
+    while(need > 0 && (sealedRolls[key]||0) > 0 && cpr > 0){
+      sealedRolls[key] -= 1;
+      if(need >= cpr){
+        need -= cpr; // whole roll used intact
+      } else {
+        rollsOpenedCount[key] += 1; // broken open for a partial amount
+        openRemaining[key] += (cpr - need);
+        need = 0;
+      }
+    }
+    return { fromLoose: fromLoose + fromOpen, fromRoll: amount - need - fromLoose - fromOpen };
+  }
+
+  // Tip / variance is calculated from the full pool first.
+  const expectedInput = document.getElementById('expected').value;
+  const hasExpected = expectedInput !== '' && !isNaN(parseFloat(expectedInput));
+  const expectedRawCents = hasExpected ? Math.round(parseFloat(expectedInput) * 100) : 0;
+  const expectedCents = hasExpected ? Math.round(expectedRawCents / UNIT) * UNIT : 0; // nearest nickel -- every denomination is a multiple of 5c
+  const expectedWasRounded = hasExpected && expectedCents !== expectedRawCents;
+  const varianceCents = totalAvailCents - expectedCents; // positive = over/tips, negative = short
+  const tipCents = (hasExpected && varianceCents > 0) ? varianceCents : 0;
+
+  // "For Needing" pile comes OUT of the tip: up to N quarters/dimes/nickels,
+  // capped by both what's on hand and by the tip itself (can't reserve more than the tip is worth).
+  const RESERVE_TARGET = {
+    quarter: getCountById('reserve_quarter'),
+    dime: getCountById('reserve_dime'),
+    nickel: getCountById('reserve_nickel')
+  };
+
+  // Reusable: break an amount into bills + already-loose coins first (largest
+  // first), only breaking a sealed roll as a last resort. Mutates the pool
+  // trackers and returns the merged per-real-key counts used.
+  function tieredBreakdown(amountCents){
+    if(amountCents <= 0) return { counts: {}, fromRoll: {} };
+    const billLooseTier = [];
+    const sealedTier = [];
+    const avail = {};
+    BILLS.forEach(b => {
+      avail[b.key] = billRemaining[b.key] || 0;
+      billLooseTier.push({ key: b.key, value: b.value, label: b.label });
+    });
+    COINS.forEach(c => {
+      const looseKey = c.key + '__loose', sealedKey = c.key + '__sealed';
+      // loose + already-opened roll coins are the same thing physically
+      avail[looseKey] = (looseRemaining[c.key]||0) + (openRemaining[c.key]||0);
+      avail[sealedKey] = (sealedRolls[c.key]||0) * cprOf(c.key);
+      billLooseTier.push({ key: looseKey, value: c.value, label: c.label });
+      sealedTier.push({ key: sealedKey, value: c.value, label: c.label });
+    });
+    billLooseTier.sort((a,b) => b.value - a.value);
+    sealedTier.sort((a,b) => b.value - a.value);
+
+    const raw = breakdownLargestFirst(amountCents, [...billLooseTier, ...sealedTier], avail);
+    const counts = {};
+    const fromRoll = {};
+    Object.keys(raw.counts).forEach(key => {
+      const n = raw.counts[key];
+      if(n <= 0) return;
+      if(key.endsWith('__loose')){
+        const coinKey = key.replace('__loose','');
+        counts[coinKey] = (counts[coinKey]||0) + n;
+        // draw from originally-loose first, then from already-opened rolls
+        const fromLoose = Math.min(n, looseRemaining[coinKey]||0);
+        looseRemaining[coinKey] -= fromLoose;
+        openRemaining[coinKey] -= (n - fromLoose);
+      } else if(key.endsWith('__sealed')){
+        const coinKey = key.replace('__sealed','');
+        counts[coinKey] = (counts[coinKey]||0) + n;
+        fromRoll[coinKey] = (fromRoll[coinKey]||0) + n;
+        consumeFromPool(coinKey, n); // breaks sealed rolls as needed, records the break
+      } else {
+        counts[key] = (counts[key]||0) + n;
+        billRemaining[key] -= n;
+      }
+    });
+    return { counts, fromRoll };
+  }
+
+  // 1) Personal Float reserve is drawn FIRST, directly from the pool
+  // (loose before roll), capped by what's on hand and by the tip's value.
+  const reserveCounts = {};
+  let reserveCents = 0;
+  let reserveShort = false;
+  const reserveShortfall = {}; // per-denomination shortfall, for the balancing suggestion
+  let reserveBudget = tipCents;
+  ['quarter','dime','nickel'].forEach(key => {
+    const want = RESERVE_TARGET[key];
+    const denom = COINS.find(c => c.key === key);
+    const have = coinPoolTotal(key);
+    const maxByBudget = Math.floor(reserveBudget / denom.value);
+    const take = Math.min(want, have, maxByBudget);
+    if(take > 0){
+      consumeFromPool(key, take);
+      reserveCounts[key] = take;
+      reserveCents += take * denom.value;
+      reserveBudget -= take * denom.value;
+    }
+    if(take < want){
+      reserveShort = true;
+      reserveShortfall[key] = want - take;
+    }
+  });
+
+  // 2) The tip is the remainder of the overage after personal float. Building
+  // its breakdown for exactly this amount makes the identity hold by
+  // construction: Over - Personal Float = Actual Tip, always.
+  const actualTipCents = tipCents - reserveCents;
+  const tipResult = tieredBreakdown(actualTipCents);
+  const tipFromRoll = tipResult.fromRoll;
+  const tipShortCents = actualTipCents - Object.keys(tipResult.counts)
+    .reduce((s,k) => s + tipResult.counts[k] * ([...COINS,...BILLS].find(d=>d.key===k).value), 0);
+  const tipDenomsDesc = [...BILLS, ...COINS].sort((a,b) => b.value - a.value);
+  const tipBreakdown = { html: tipDenomsDesc.map(d => {
+    const n = tipResult.counts[d.key] || 0;
+    if(n <= 0) return '';
+    return denomLine(d.label, n, d.value, n*d.value);
+  }).join('') };
+
+  // Float is solved in four priority tiers:
+  // 1) loose coins (smallest first) -- always best.
+  // 2) WHOLE, intact rolls -- handing over a sealed roll costs nothing extra,
+  //    and keeps the float well-stocked with change for tomorrow.
+  // 3) bills (smallest first) -- clean, no coin count added either way.
+  // 4) breaking INTO a roll for a partial amount -- true last resort, only
+  //    if loose + whole rolls + bills genuinely can't hit the target.
+  const splitAvail = {};
+  const looseTier = [];
+  const rollTier = [];
+  const wholeRollTier = [];
+  COINS.forEach(c => {
+    const looseKey = c.key + '__loose';
+    const rollKey = c.key + '__roll';
+    // "loose" = originally-loose PLUS coins from rolls already broken open
+    splitAvail[looseKey] = (looseRemaining[c.key]||0) + (openRemaining[c.key]||0);
+    splitAvail[rollKey] = (sealedRolls[c.key]||0) * cprOf(c.key);
+    looseTier.push({ key: looseKey, value: c.value });
+    rollTier.push({ key: rollKey, value: c.value });
+
+    const roll = ROLLS.find(r => r.coinKey === c.key);
+    if(roll){
+      const wholeKey = c.key + '__wholeroll';
+      splitAvail[wholeKey] = sealedRolls[c.key] || 0;
+      wholeRollTier.push({ key: wholeKey, value: roll.coinsPerRoll * c.value });
+    }
+  });
+  looseTier.sort((a,b) => a.value - b.value);
+  rollTier.sort((a,b) => a.value - b.value);
+  wholeRollTier.sort((a,b) => a.value - b.value);
+
+  const billTier = [];
+  BILLS.forEach(b => {
+    splitAvail[b.key] = billRemaining[b.key] || 0;
+    billTier.push({ key: b.key, value: b.value });
+  });
+  billTier.sort((a,b) => a.value - b.value);
+
+  // Pass A: try loose + whole rolls + bills only -- no roll gets broken at all.
+  const passADenoms = [...looseTier, ...wholeRollTier, ...billTier];
+  let used = solveExact(targetCents, passADenoms, splitAvail);
+  if(used){
+    // Translate whole-roll usage into plain roll-derived coin counts for display
+    COINS.forEach(c => {
+      const wholeKey = c.key + '__wholeroll';
+      const roll = ROLLS.find(r => r.coinKey === c.key);
+      const wholeUsed = used[wholeKey] || 0;
+      if(wholeUsed > 0 && roll){
+        used[c.key+'__roll'] = (used[c.key+'__roll']||0) + (wholeUsed * roll.coinsPerRoll);
+      }
+    });
+  } else {
+    // Pass B: fall back to allowing a roll to be broken for a partial amount.
+    // Excludes the whole-roll tier entirely (fine-grained rollTier already
+    // covers that same physical inventory) to avoid double-counting rolls.
+    const passBDenoms = [...looseTier, ...billTier, ...rollTier];
+    used = solveExact(targetCents, passBDenoms, splitAvail);
+  }
+
+  // The DP only guarantees feasibility, not maximum loose usage -- it can leave
+  // coins idle (destined for deposit) while using a bill that could've been
+  // exactly replaced by those idle coins instead. Greedily swap any used bill
+  // for an equal-value combination of currently-unused loose coins, so as much
+  // change as possible ends up in the float rather than sitting in the deposit.
+  if(used){
+    const coinsDesc = [...COINS].sort((a,b) => b.value - a.value);
+    [...BILLS].sort((a,b) => a.value - b.value).forEach(b => {
+      let guard = used[b.key] || 0;
+      while(used[b.key] > 0 && guard > 0){
+        guard--;
+        let remaining = b.value;
+        const attempt = {};
+        coinsDesc.forEach(c => {
+          const looseKey = c.key + '__loose';
+          const availableUnused = (splitAvail[looseKey]||0) - (used[looseKey]||0);
+          const take = Math.min(availableUnused, Math.floor(remaining / c.value));
+          if(take > 0){ attempt[looseKey] = take; remaining -= take*c.value; }
+        });
+        if(remaining === 0){
+          used[b.key] -= 1;
+          Object.keys(attempt).forEach(k => { used[k] = (used[k]||0) + attempt[k]; });
+        } else {
+          break; // can't fully replace this bill with idle loose -- stop trying this denomination
+        }
+      }
+    });
+  }
+
+  // The solver guarantees an exact total, but with equal-value loose/roll pieces
+  // it can land on a combination that leaves loose coins unused while still
+  // drawing from a roll. Since loose and roll units of the same coin are worth
+  // the same, swap in any unused loose for roll-derived coins -- same total,
+  // but never breaks a roll further than necessary.
+  if(used){
+    COINS.forEach(c => {
+      const looseKey = c.key + '__loose', rollKey = c.key + '__roll';
+      const usedLoose = used[looseKey] || 0;
+      const usedRoll = used[rollKey] || 0;
+      const unusedLoose = (splitAvail[looseKey]||0) - usedLoose;
+      if(unusedLoose > 0 && usedRoll > 0){
+        const shift = Math.min(unusedLoose, usedRoll);
+        used[looseKey] = usedLoose + shift;
+        used[rollKey] = usedRoll - shift;
+      }
+    });
+  }
+
+  // NORMALIZE the loose/roll split per denomination. The solver returns *a*
+  // valid split, but not necessarily the one that keeps rolls sealed. For a
+  // given total n, prefer using as many WHOLE rolls as possible and take the
+  // remainder from loose -- e.g. 72 dimes with 23 loose should be
+  // "1 whole roll (50) + 22 loose", never "49 from a roll + 23 loose".
+  if(used){
+    COINS.forEach(c => {
+      const roll = ROLLS.find(r => r.coinKey === c.key);
+      if(!roll) return;
+      const cpr = roll.coinsPerRoll;
+      const looseKey = c.key + '__loose', rollKey = c.key + '__roll';
+      const n = (used[looseKey]||0) + (used[rollKey]||0);
+      if(n <= 0) return;
+      const looseAvail = splitAvail[looseKey] || 0;
+      const rollAvail = splitAvail[rollKey] || 0;
+      const wholeRollsAvail = Math.floor(rollAvail / cpr);
+
+      // Most whole rolls we can use without exceeding the amount needed
+      let w = Math.min(wholeRollsAvail, Math.floor(n / cpr));
+      let rem = n - (w * cpr);
+      if(rem > looseAvail){
+        // Loose can't cover the remainder -- must break into a roll for the rest
+        used[looseKey] = looseAvail;
+        used[rollKey] = n - looseAvail;
+      } else {
+        used[rollKey] = w * cpr;   // whole, sealed rolls only
+        used[looseKey] = rem;
+      }
+    });
+  }
+
+  // Deduct the float's usage from the running pool trackers, so Deposit
+  // reflects what's genuinely left over.
+  if(used){
+    COINS.forEach(c => {
+      // loose portion: draw from originally-loose first, then already-open coins
+      const nLoose = used[c.key+'__loose'] || 0;
+      const fromLoose = Math.min(nLoose, looseRemaining[c.key]||0);
+      looseRemaining[c.key] -= fromLoose;
+      openRemaining[c.key] -= (nLoose - fromLoose);
+      // roll portion: breaks sealed rolls as needed and records each break
+      const nRoll = used[c.key+'__roll'] || 0;
+      if(nRoll > 0) consumeFromPool(c.key, nRoll);
+    });
+    BILLS.forEach(b => {
+      billRemaining[b.key] = (billRemaining[b.key]||0) - (used[b.key]||0);
+    });
+  }
+
+
+  const poolCents = totalAvailCents - tipCents; // reserve is part of tipCents, not extra
+
+
+  let coinLines = '', coinTotal = 0, coinCount = 0;
+  let billLines = '', billTotal = 0, billCount = 0;
+
+  if(used){
+    COINS.forEach(c => {
+      const usedLoose = used[c.key+'__loose'] || 0;
+      const usedRoll = used[c.key+'__roll'] || 0;
+      const n = usedLoose + usedRoll;
+      const roll = ROLLS.find(r => r.coinKey === c.key);
+      const cpr = roll ? roll.coinsPerRoll : 0;
+      coinLines += exactUsedCoinLine(c, usedLoose, usedRoll, cpr);
+      coinTotal += n*c.value; coinCount += n;
+    });
+    BILLS.forEach(b => {
+      const n = used[b.key] || 0;
+      billLines += denomLine(b.label, n, b.value, n*b.value); billTotal += n*b.value; billCount += n;
+    });
+  }
+
+  // Rolls actually broken open, counted globally across personal float, tip and
+  // store float -- a roll that stays sealed and gets handed over whole doesn't count.
+  const rollsOpenedList = [];
+  COINS.forEach(c => {
+    const opened = rollsOpenedCount[c.key] || 0;
+    if(opened > 0) rollsOpenedList.push({ label: c.label, count: opened });
+  });
+  const openRollsBox = `
+    <div class="rolls-opened-note">
+      ${rollsOpenedList.length > 0
+        ? `<div class="rolls-opened-title">Open Rolls</div>` + rollsOpenedList.map(r => `<div>&bull; Open ${r.count} ${r.label} roll${r.count===1?'':'s'}</div>`).join('')
+        : `No rolls to open`}
+    </div>`;
+  const rollsOpenedBox = `
+    <div class="rolls-opened-note">
+      ${rollsOpenedList.length > 0
+        ? `<div class="rolls-opened-title">Rolls Opened</div>` + rollsOpenedList.map(r => `<div>&bull; ${r.count} ${r.label} roll${r.count===1?'':'s'} opened</div>`).join('')
+        : `No rolls opened`}
+    </div>`;
+
+  const cashTotal = coinTotal + billTotal;
+  const roundedNote = wasRounded ? `<div class="rline dim"><span>Rounded to nearest 5c</span><span>${fmt(targetCents)}</span></div>` : '';
+
+  // Total money = full inventory entered, broken down by denomination.
+  // Coins show the roll-to-coin conversion math since rolls were merged in above.
+  let totalCoinLines = '', totalBillLines = '';
+  COINS.forEach(c => {
+    const roll = ROLLS.find(r => r.coinKey === c.key);
+    const rCount = roll ? (rollAvail[roll.key]||0) : 0;
+    const cpr = roll ? roll.coinsPerRoll : 0;
+    totalCoinLines += coinLineWithRolls(c, rCount, looseCoinAvail[c.key]||0, cpr);
+  });
+  BILLS.forEach(b => { const n = billAvail[b.key]||0; if(n>0) totalBillLines += denomLine(b.label, n, b.value, n*b.value); });
+
+  // Drop = whatever's left in the pool once tip, float, and personal float are set aside
+  let dropCoinLines = '', dropBillLines = '', dropCount = 0;
+  COINS.forEach(c => {
+    const n = coinPoolTotal(c.key);
+    dropCoinLines += denomLine(c.label, n, c.value, n*c.value); dropCount += n;
+  });
+  BILLS.forEach(b => {
+    const n = billRemaining[b.key]||0;
+    dropBillLines += denomLine(b.label, n, b.value, n*b.value); dropCount += n;
+  });
+  const depositCents = poolCents - targetCents;
+
+  // Suggest the easiest way to balance things out, rather than silently
+  // reducing personal float or the tip -- e.g. what change to add so personal
+  // float can be completed with fewer coins left sitting in the deposit.
+  let suggestionHtml = '';
+  if(hasExpected && tipCents > 0 && reserveShort){
+    const parts = Object.keys(reserveShortfall).map(key => {
+      const denom = COINS.find(c => c.key === key);
+      const n = reserveShortfall[key];
+      return `${n} ${denom.label.toLowerCase()}${n===1?'':'s'}`;
+    });
+    suggestionHtml = `<div class="suggestion-note">Suggestion: add ${parts.join(', ')} to your count to complete the personal float and leave fewer coins in the deposit.</div>`;
+  }
+
+  // If the drawer physically can't produce the exact tip amount with the
+  // denominations on hand, say so plainly rather than showing a short breakdown.
+  if(tipShortCents > 0){
+    suggestionHtml += `<div class="flag warn">The tip breakdown is ${fmt(tipShortCents)} short &mdash; the denominations on hand can't make ${fmt(actualTipCents)} exactly. Add smaller change (dimes/nickels) and recalculate.</div>`;
+  }
+
+
+  let flagHtml = '';
+  if(!used){
+    const shortBy = targetCents - totalAvailCents;
+    flagHtml = shortBy > 0
+      ? `<div class="flag warn">Can't hit this store float &mdash; your total on-hand inventory is only ${fmt(totalAvailCents)}, short by ${fmt(shortBy)}. Add more bills or coins and recalculate.</div>`
+      : `<div class="flag warn">Can't hit this store float exactly with these denominations, even though there's enough total value. Try adding a few more small coins (dimes/nickels) to close the gap.</div>`;
+  }
+
+  body.innerHTML = `
+    <div class="receipt-title">TILL SUMMARY</div>
+    <div class="receipt-sub">${used ? 'built from inventory on hand' : 'unable to build exactly'}</div>
+
+    <div class="group-title">Total Money</div>
+    <div class="rtotal"><span>Total money</span><span>${fmt(totalAvailCents)}</span></div>
+    ${totalBillLines}
+    ${totalCoinLines}
+    ${(!totalCoinLines && !totalBillLines) ? `<div class="empty-note">No inventory entered.</div>` : ''}
+
+    ${used ? openRollsBox : ''}
+
+    <div class="dashed"></div>
+    <div class="tips-summary">
+      <div class="rline bold"><span>Counted</span><span>${fmt(totalAvailCents)}</span></div>
+      <div class="rline bold equation-line"><span>Expected</span><span>${fmt(hasExpected ? expectedCents : 0)}</span></div>
+      ${expectedWasRounded ? `<div class="rline dim">(rounded to nearest 5c, entered ${fmt(expectedRawCents)})</div>` : ''}
+      <div class="rtotal bold ${varianceCents < 0 ? 'variance-short' : 'variance-over'}">
+        <span>${varianceCents < 0 ? 'Under' : 'Over'}</span>
+        <span>${fmt(Math.abs(hasExpected ? varianceCents : 0))}</span>
+      </div>
+      ${!hasExpected ? `<div class="empty-note">Enter an expected total to calculate tips.</div>` : ''}
+    </div>
+
+    <div class="dashed"></div>
+    <div class="group-title">Personal Float</div>
+    <div class="rtotal"><span>Set aside</span><span>${fmt(reserveCents)}</span></div>
+    ${Object.keys(reserveCounts).map(key => {
+      const denom = COINS.find(c => c.key === key);
+      return denomLine(denom.label, reserveCounts[key], denom.value, reserveCounts[key]*denom.value);
+    }).join('')}
+    ${!hasExpected ? `<div class="empty-note">Enter an expected total to draw a personal float from the tip.</div>` : ''}
+    ${(hasExpected && tipCents <= 0) ? `<div class="empty-note">No tip available to draw a personal float from.</div>` : ''}
+
+    ${(hasExpected && tipCents > 0) ? `
+      <div class="dashed"></div>
+      <div class="group-title">Actual Tip</div>
+      <div class="rline bold"><span>Over</span><span>${fmt(tipCents)}</span></div>
+      <div class="rline bold equation-line"><span>Personal Float</span><span>${fmt(reserveCents)}</span></div>
+      <div class="tip-payout-box">
+        <div class="tip-payout-total"><span>Actual tip</span><span>${fmt(actualTipCents)}</span></div>
+        <div class="tip-payout-breakdown">${tipBreakdown && tipBreakdown.html ? tipBreakdown.html : ''}</div>
+      </div>
+    ` : ''}
+
+    <div class="dashed"></div>
+    <div class="group-title">Store Float</div>
+    <div class="section-box float-box">
+      <div class="section-box-total"><span>Store Float</span><span>${fmt(targetCents)}</span></div>
+      <div class="section-box-breakdown">
+        ${billLines}
+        ${coinLines}
+        ${(!coinLines && !billLines) ? `<div class="empty-note">Not built yet.</div>` : ''}
+        ${roundedNote}
+      </div>
+    </div>
+
+    <div class="dashed"></div>
+    <div class="group-title">Deposit</div>
+    ${used ? `
+      <div class="rline bold"><span>${(hasExpected && tipCents > 0) ? 'Expected' : 'Total money'}</span><span>${fmt(poolCents)}</span></div>
+      <div class="rline bold equation-line"><span>Store Float</span><span>${fmt(targetCents)}</span></div>
+      <div class="section-box deposit-box">
+        <div class="section-box-total"><span>Deposit</span><span>${fmt(depositCents)}</span></div>
+        <div class="section-box-breakdown">
+          ${dropBillLines}
+          ${dropCoinLines}
+          ${(!dropCoinLines && !dropBillLines) ? `<div class="empty-note">Nothing left to deposit.</div>` : ''}
+        </div>
+      </div>
+    ` : `
+      <div class="empty-note">Deposit can't be calculated until the store float is built.</div>
+    `}
+
+    ${suggestionHtml}
+
+    ${flagHtml}
+
+    ${used ? rollsOpenedBox : ''}
+  `;
+});
+
+// ---- Save the receipt as a downloadable PNG ----
+document.getElementById('savePngBtn').addEventListener('click', () => {
+  const btn = document.getElementById('savePngBtn');
+  const target = document.getElementById('receiptCapture');
+  if(typeof html2canvas === 'undefined'){
+    alert('PNG export isn\'t available right now (couldn\'t load the export library). Try again once you have an internet connection.');
+    return;
+  }
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  html2canvas(target, {
+    backgroundColor: '#f7f2e4',
+    scale: 2,
+    useCORS: true
+  }).then(canvas => {
+    const link = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,10);
+    link.download = `till-summary-${stamp}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }).catch(err => {
+    console.error('PNG export failed:', err);
+    alert('Something went wrong saving the PNG. Please try again.');
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  });
+});
+</script>
+</body>
+</html>
